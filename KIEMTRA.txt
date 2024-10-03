@@ -1,0 +1,392 @@
+Tầng Models. (hiển thị)
+- Tạo một class mới chứa các attributes của đối tượng. (Employee)
+- Tạo thêm một class nữa với tên Connect... để kết nối dữ liệu SQL. (ConnectEmployee)
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tầng Models. (hiển thị) - Viết trong class ConnectEmployee
+
+using BAI07.Models;
+using System.Data;
+using System.Data.SqlClient;
+
+public List<Employee> getData()
+        {
+            List<Employee> listemployee = new List<Employee>();
+
+            using (SqlConnection con = new SqlConnection())
+            {
+                string conStr = "Data Source = DESKTOP-LI8OVCU; database = Tuan4_QL_NhanSu; Integrated Security = true";
+
+                con.ConnectionString = conStr;
+
+                string sql = "SELECT * FROM tbl_Employee";
+
+                DataTable dt = new DataTable();
+
+                SqlDataAdapter da = new SqlDataAdapter(sql, con);
+
+                da.Fill(dt);
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    var employee = new Employee();
+                    employee.Id = row["Id"].ToString();
+                    employee.Name = row["Name"].ToString();
+                    employee.Gender = row["Gender"].ToString();
+                    employee.City = row["City"].ToString();
+
+                    listemployee.Add(employee);
+                }
+                return listemployee;
+            }
+        }
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tầng Controller. (hiển thị) - (EmployeeController)
+
+using BAI07.Models;
+
+ public ActionResult Index()
+        {
+            return RedirectToAction("ShowEmployee");
+        }
+
+        public ActionResult ShowEmployee()
+        {
+            ConnectEmployee ce = new ConnectEmployee();
+            return View(ce.getData());
+        }
+
+--> Xong hai tầng này thì Build rồi add view ShowEmployee. (dạng list)
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tầng View. (hiển thị)
+
+@model IEnumerable<BAI07.Models.Employee>
+
+@{
+    ViewBag.Title = "Show Employee";
+}
+
+<h2 class="text-center text-primary">BẢNG EMPLOYEE</h2>
+
+
+<table class="table table-bordered">
+    <tr>
+        <th>
+            @Html.DisplayNameFor(model => model.Id)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Name)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Gender)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.City)
+        </th>
+    </tr>
+
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Id)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Name)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Gender)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.City)
+            </td>
+            <td>
+                @Html.ActionLink("DELETE", "DeleteEmployee", "Employee", new { id = item.Id }) |
+                @Html.ActionLink("EDIT", "EditEmployee", "Employee", routeValues: new { id = item.Id }, htmlAttributes: null) 
+            </td>
+        </tr>
+    }
+</table>
+
+@Html.ActionLink("ADD NEW EMPLOYEE", "CreateEmployee", "Employee")
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tầng Models. (Thêm) - Viết trong class ConnectEmployee
+ 
+public int InsertEmployee(string name, string gender, string city, int deptID)
+        {
+            using (SqlConnection con = new SqlConnection())
+            {
+                string conStr = "Data Source = DESKTOP-LI8OVCU; database = Tuan4_QL_NhanSu; Integrated Security = true";
+
+                con.ConnectionString = conStr;
+
+                // KHI SỬ DỤNG EXECUTE READER/SCALAR/NONQUERY PHẢI DÙNG OPEN/CLOSE.
+                con.Open();
+
+                int rs = 0;
+
+                // Kiểm tra trùng tên.
+                string sql1 = "SELECT COUNT(*) FROM tbl_Employee WHERE Name = N'" + name + "'";
+
+                SqlCommand cmd1 = new SqlCommand(sql1, con);
+
+                int kt = (int)cmd1.ExecuteScalar();
+
+                if (kt == 0)
+                {
+                    string sql = "INSERT INTO tbl_Employee (Name, Gender, City, DeptID)";
+
+                    sql += "VALUES (N'" + name + "', N'" + gender + "', N'" + city + "', N'" + deptID + "')";
+
+                    SqlCommand cmd = new SqlCommand(sql, con);
+
+                    cmd.CommandType = CommandType.Text;
+
+                    rs = cmd.ExecuteNonQuery();
+                }
+                con.Close();
+                return rs;
+            }
+        }
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tầng Controller. (Thêm) - (EmployeeController)
+
+// HIỂN THỊ VIEW THÊM EMPLOYEE.
+        public ActionResult CreateEmployee()
+        {
+            return View();
+        }
+[HttpPost]
+        public ActionResult CreateEmployee(FormCollection fc)
+        {
+            ConnectEmployee ce = new ConnectEmployee();
+
+            var name = fc["Name"];
+            var gender = fc["Gender"];
+            var city = fc["City"];
+            var deptID = int.Parse(fc["DeptID"]);
+
+            int kt = ce.InsertEmployee(name, gender, city, deptID);
+
+            if (kt == 1)
+                ViewBag.ThongBao = "Thêm Thành Công";
+            else
+                ViewBag.ThongBao = "Thêm Không Thành Công";
+            return View();
+        }
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tầng View. (Thêm)
+
+@using (Html.BeginForm())
+{
+    <h2 class="text-primary text-center">ADD EMPLOYEE</h2>
+    <hr />
+
+    <div class="mb-3">
+        <label for="exampleFormControlInput1" class="form-label">FULLNAME</label>
+        <input name="Name" type="text" class="form-control" id="exampleFormControlInput1">
+    </div>
+
+    <div class="mb-3">
+        <label for="exampleFormControlInput1" class="form-label">GENDER</label>
+        <input name="Gender" type="text" class="form-control" id="exampleFormControlInput1">
+    </div>
+
+    <div class="mb-3">
+        <label for="exampleFormControlInput1" class="form-label">CITY</label>
+        <input name="City" type="text" class="form-control" id="exampleFormControlInput1">
+    </div>
+
+    <div class="mb-3">
+        <label for="exampleFormControlInput1" class="form-label">DEPTID</label>
+        <input name="DeptID" type="text" class="form-control" id="exampleFormControlInput1">
+    </div>
+
+    <div>
+        <input type="submit" value="ADD EMPLOYEE" class="btn btn-secondary" />
+    </div>
+}
+
+<div class="text-danger ">@ViewBag.ThongBao</div>
+
+@Html.ActionLink("Back To List Employee", "ShowEmployee", "Employee")
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tầng Models. (Xóa) - Viết trong class ConnectEmployee
+
+ public int DeleteEmployee(int id)
+        {
+            using (SqlConnection con = new SqlConnection())
+            {
+                string conStr = "Data Source = DESKTOP-LI8OVCU; database = Tuan4_QL_NhanSu; Integrated Security = true";
+
+                con.ConnectionString = conStr;
+
+                con.Open();
+
+                string sql = "DELETE FROM tbl_Employee WHERE ID = @ID";
+
+                SqlCommand cmd = new SqlCommand(sql, con);
+
+                cmd.Parameters.AddWithValue("@ID", id);
+
+                int rowsAffected = cmd.ExecuteNonQuery();
+
+                con.Close();
+
+                return rowsAffected;
+            }
+        }
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tầng Controller. (Xóa) - (EmployeeController)
+
+public ActionResult DeleteEmployee(int id)
+        {
+            ConnectEmployee ce = new ConnectEmployee();
+            int kt = ce.DeleteEmployee(id);
+            if (kt > 0)
+                ViewBag.ThongBao = "Xoá Thành Công";
+            else
+                ViewBag.ThongBao = "Xoá Không Thành Công";
+            return View();
+        }
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tầng View. (Xóa)
+
+@{
+    ViewBag.Title = "Delete Employee";
+}
+
+<h2 class="text-primary">Delete Employee</h2>
+
+<div class="text-danger">@ViewBag.ThongBao</div>
+
+@Html.ActionLink("Back To Employee List","ShowEmployee","Employee")
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tầng Models. (Sửa) - Viết trong class ConnectEmployee
+
+public Employee GetEmployeeByID(int id)
+        {
+            Employee employee = null;
+
+            using (SqlConnection con = new SqlConnection())
+            {
+                string conStr = "Data Source = DESKTOP-LI8OVCU; database = Tuan4_QL_NhanSu; Integrated Security = true";
+
+                con.ConnectionString = conStr;
+
+                con.Open();
+
+                string sql = "SELECT * FROM tbl_Employee WHERE ID = @ID";
+
+                SqlCommand cmd = new SqlCommand(sql, con);
+
+                cmd.Parameters.AddWithValue("@ID", id);
+
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    employee = new Employee();
+
+                    employee.Id = reader["ID"].ToString();
+
+                    employee.Name = reader["Name"].ToString();
+
+                    employee.Gender = reader["Gender"].ToString();
+
+                    employee.City = reader["City"].ToString();
+                }
+
+                con.Close();
+
+                return employee;
+            }
+        }
+
+public int UpdateEmployee(string id, string newName, string newGender, string newCity)
+        {
+            using (SqlConnection con = new SqlConnection())
+            {
+                string conStr = "Data Source = DESKTOP-LI8OVCU; database = Tuan4_QL_NhanSu; Integrated Security = true";
+
+                con.ConnectionString = conStr;
+
+                con.Open();
+
+                string sql = "UPDATE tbl_Employee SET Name = @Name, Gender = @Gender, City = @City WHERE ID = @ID";
+
+                SqlCommand cmd = new SqlCommand(sql, con);
+
+                cmd.Parameters.AddWithValue("@Name", newName);
+               
+                cmd.Parameters.AddWithValue("@Gender", newGender);
+                
+                cmd.Parameters.AddWithValue("@City", newCity);
+
+                cmd.Parameters.AddWithValue("@ID", id);
+
+                int res = cmd.ExecuteNonQuery();
+
+                con.Close();
+
+                return res;
+            }
+        }
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tầng Controller. (Sửa) - (EmployeeController)
+
+public ActionResult EditEmployee(int id)
+        {
+            ConnectEmployee ce = new ConnectEmployee();
+
+            Employee employee = ce.GetEmployeeByID(id);
+
+            if (employee == null)
+            {
+                return HttpNotFound();
+            }
+            return View(employee);
+        }
+
+        [HttpPost]
+        public ActionResult EditEmployee(Employee employee)
+        {
+            if (ModelState.IsValid)
+            {
+                ConnectEmployee ce = new ConnectEmployee();
+                int result = ce.UpdateEmployee(employee.Id, employee.Name, employee.Gender, employee.City);
+                return RedirectToAction("ShowEmployee");
+            }
+            return View(employee);
+        }
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tầng View. (Sửa)
+
+@model BAI07.Models.Employee
+
+@{
+    ViewBag.Title = "Edit EMPLOYEE";
+}
+
+@using (Html.BeginForm())
+{
+
+    <div class="mb-3">
+        <input name="Id" type="hidden" value="@Model.Id" />
+
+        <label for="exampleFormControlInput1" class="form-label">NAME</label>
+        <input name="Name" type="text" value="@Model.Name" class="form-control" id="exampleFormControlInput1">
+
+        <label for="exampleFormControlInput1" class="form-label">GENDER</label>
+        <input name="Gender" type="text" value="@Model.Gender" class="form-control" id="exampleFormControlInput1">
+
+        <label for="exampleFormControlInput1" class="form-label">CITY</label>
+        <input name="City" type="text" value="@Model.City" class="form-control" id="exampleFormControlInput1">
+    </div>
+
+    <div>
+        <button type="submit" class="btn btn-secondary">EDIT EMPLOYEE</button>
+    </div>
+}
+
+@Html.ActionLink("Back To Employee List", "ShowEmployee", "Employee")
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
